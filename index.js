@@ -1,3 +1,3 @@
-import { addTwo } from "./add.js";
-import { squad } from "./squad.js";
-console.log("hello world");
+import { addTwo } from './add';
+import { squad } from './squad';
+console.log('hello world');
