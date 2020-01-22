@@ -1,93 +1,38 @@
+use crate::types::{expr::Expr, keyword::Keyword, punctuator::Punctuator};
+use std::fmt;
+
+#[derive(Debug)]
+pub struct Position {
+  line: u8,
+  column: u8,
+}
+
+#[derive(Debug)]
+pub struct Element {
+  value: String,
+  r#type: Syntax,
+  position: Position,
+}
+
+impl fmt::Display for Element {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(
+          f,
+          // "Element {{ \n value: '{}'\n type: {:?}\n position: {:?} \n}}",
+          "Element {{  value: '{}' | type: {:?} | position: {:?} }}",
+          self.value,
+          self.r#type,
+          self.position
+      )
+  }
+}
+
 #[derive(Debug)]
 pub enum Syntax {
   Punctuator(Punctuator),
   Keyword(Keyword),
-  Expression(Expression),
+  Expression(Expr),
   Undefined,
-}
-
-// { } ( ) [ ] ... . ; , < > <= >= == != === !== + - * % ** ++ -- << >> >>> & | ^ ! ~
-// && || ? : = += -= *= %= **= <<= >>= >>>= &= |= ^= => / /=
-#[derive(Debug)]
-pub enum Punctuator {
-  LeftCurlBrace,
-  RightCurlBrace,
-  LeftBrace,
-  RigthBrace,
-  LeftSqrBrace,
-  RightSqrBrace,
-  Spread,
-  Dot,
-  Semicolon,
-  // Semi,
-  Comma,
-  Assign,
-  Append,
-  Substract,
-}
-
-// await break case catch class const continue debugger default delete do
-// else export extends finally for function if import in instanceof new
-// return super switch this throw try typeof var void while with yield
-#[derive(Debug)]
-pub enum Keyword {
-  Await,
-  Break,
-  Case,
-  Catch,
-  Class,
-  Const,
-  Continue,
-  Debugger,
-  Default,
-  Delete,
-  Do,
-  Else,
-  Export,
-  Extends,
-  Finally,
-  For,
-  Function,
-  From,
-  Let,
-  If,
-  Import,
-  In,
-  Instanceof,
-  New,
-  Return,
-  Super,
-  Switch,
-  This,
-  Throw,
-  Try,
-  Typeof,
-  Var,
-  Void,
-  While,
-  With,
-  Yield,
-}
-
-// FunctionDeclaration, FunctionExpression, GeneratorDeclaration,
-// GeneratorExpression, AsyncFunctionDeclaration, AsyncFunctionExpression,
-// AsyncGeneratorDeclaration, AsyncGeneratorExpression, MethodDefinition,
-// ArrowFunction, AsyncArrowFunction, ClassDeclaration, ClassExpression
-#[derive(Debug)]
-pub enum Expression {
-  FunctionDeclaration,
-  FunctionExpression,
-  GeneratorDeclaration,
-  GeneratorExpression,
-  AsyncFunctionDeclaration,
-  AsyncFunctionExpression,
-  AsyncGeneratorDeclaration,
-  AsyncGeneratorExpression,
-  MethodDefinition,
-  ArrowFunction,
-  AsyncArrowFunction,
-  ClassDeclaration,
-  ClassExpression,
 }
 
 pub fn analyze(elem: &str) -> Syntax {
