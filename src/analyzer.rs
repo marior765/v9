@@ -35,26 +35,46 @@ pub enum Syntax {
   Undefined,
 }
 
-pub fn analyze(elem: &str) -> Syntax {
-  match elem {
-    ";" => Syntax::Punctuator(Punctuator::Semicolon),
-    "{" => Syntax::Punctuator(Punctuator::LeftCurlBrace),
-    "}" => Syntax::Punctuator(Punctuator::RightCurlBrace),
-    "(" => Syntax::Punctuator(Punctuator::LeftBrace),
-    ")" => Syntax::Punctuator(Punctuator::RigthBrace),
-    "[" => Syntax::Punctuator(Punctuator::LeftSqrBrace),
-    "]" => Syntax::Punctuator(Punctuator::RightSqrBrace),
-    "..." => Syntax::Punctuator(Punctuator::Spread),
-    "." => Syntax::Punctuator(Punctuator::Dot),
-    "," => Syntax::Punctuator(Punctuator::Comma),
-    "=" => Syntax::Punctuator(Punctuator::Assign),
-    "+" => Syntax::Punctuator(Punctuator::Append),
-    "-" => Syntax::Punctuator(Punctuator::Substract),
-    "const" => Syntax::Keyword(Keyword::Const),
-    "let" => Syntax::Keyword(Keyword::Let),
-    "import" => Syntax::Keyword(Keyword::Import),
-    "export" => Syntax::Keyword(Keyword::Export),
-    "from" => Syntax::Keyword(Keyword::From),
-    _ => Syntax::Undefined,
+#[derive(Debug)]
+pub struct Analyzer {
+  pub storage: Vec<String>,
+  pub lexer: Vec<Element>,
+}
+
+impl Analyzer {
+  pub fn new(storage: Vec<String>) -> Self {
+    // storage
+    //   .iter_mut()
+    //   .split("\n")
+    //   .map(|x| !x.contains("import "))
+    //   .collect::<Vec<String>>();
+    Analyzer {
+      storage: storage,
+      lexer: Vec::new(),
+    }
+  }
+
+  pub fn analyze(&self, elem: &str) -> Syntax {
+    match elem {
+      ";" => Syntax::Punctuator(Punctuator::Semicolon),
+      "{" => Syntax::Punctuator(Punctuator::OpenBlock),
+      "}" => Syntax::Punctuator(Punctuator::CloseBlock),
+      "(" => Syntax::Punctuator(Punctuator::OpenParen),
+      ")" => Syntax::Punctuator(Punctuator::CloseParen),
+      "[" => Syntax::Punctuator(Punctuator::OpenBracket),
+      "]" => Syntax::Punctuator(Punctuator::CloseBracket),
+      "..." => Syntax::Punctuator(Punctuator::Spread),
+      "." => Syntax::Punctuator(Punctuator::Dot),
+      "," => Syntax::Punctuator(Punctuator::Comma),
+      "=" => Syntax::Punctuator(Punctuator::Assign),
+      "+" => Syntax::Punctuator(Punctuator::Add),
+      "-" => Syntax::Punctuator(Punctuator::Sub),
+      "const" => Syntax::Keyword(Keyword::Const),
+      "let" => Syntax::Keyword(Keyword::Let),
+      "import" => Syntax::Keyword(Keyword::Import),
+      "export" => Syntax::Keyword(Keyword::Export),
+      "from" => Syntax::Keyword(Keyword::From),
+      _ => Syntax::Undefined,
+    }
   }
 }

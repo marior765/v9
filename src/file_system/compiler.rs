@@ -9,7 +9,6 @@ use std::path::Path;
 pub struct Compiler {
   buffer: HashMap<String, Module>,
   deep: i8,
-  // callstack: Option<CallStack>,
 }
 
 impl Compiler {
@@ -17,7 +16,6 @@ impl Compiler {
     Compiler {
       buffer: HashMap::new(),
       deep: 0,
-      // callstack: None,
     }
   }
 
@@ -64,7 +62,13 @@ impl Compiler {
       //         column_counter += elem.len() + 1;
       //     }
       // }
-      module.content.push(buf);
+      // let buf = buf
+      //   .split(";")
+      //   .map(|s| if !s.contains("import ") { s } else { "\n" })
+      //   .collect();
+      for line in buf.lines() {
+        module.content.push(String::from(line));
+      }
     }
     Ok(())
   }
@@ -75,12 +79,24 @@ impl Compiler {
       println!("File: {}", key);
       println!("Content:");
       for content in val.content.iter() {
-        println!("{}", content);
+        println!("{:?}", val.content);
       }
-      println!("Scheme:");
-      for scheme in val.scheme.iter() {
-        println!("{}", scheme);
-      }
+      // println!("Scheme:");
+      // for scheme in val.scheme.iter() {
+      //   println!("{}", scheme);
+      // }
     }
+  }
+
+  pub fn completed_buf(&self) -> Vec<String> {
+    let mut vec = Vec::new();
+    self.buffer.iter().for_each(|x| {
+      x.1.content.iter().for_each(|line| {
+        if !line.contains("import ") {
+          vec.push(line.clone())
+        }
+      })
+    });
+    vec
   }
 }

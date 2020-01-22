@@ -1,8 +1,8 @@
 mod analyzer;
 mod file_system;
 mod types;
+use analyzer::Analyzer;
 use file_system::compiler::Compiler;
-
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Instant;
@@ -18,7 +18,10 @@ fn multi_concurrency() {
             .expect("File not found");
     });
     read_handler.join().unwrap();
-    compiler.lock().unwrap().show();
+    let mut analyzer = Analyzer::new(compiler.lock().unwrap().completed_buf());
+    for el in &analyzer.storage {
+        println!("{:?}", el);
+    }
 }
 
 // fn single_concurrency() {
