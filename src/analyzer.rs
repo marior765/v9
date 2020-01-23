@@ -1,6 +1,7 @@
 use crate::types::{expr::Expr, keyword::Keyword, punctuator::Punctuator};
 use std::fmt;
 use std::iter::Peekable;
+use std::str::FromStr;
 
 #[derive(Debug)]
 pub struct Position {
@@ -8,10 +9,15 @@ pub struct Position {
   column: u8,
 }
 
+impl Position {
+  fn new(x: u8, y: u8) -> Self {
+    Position { line: x, column: y }
+  }
+}
+
 #[derive(Debug)]
 pub struct Element {
-  value: String,
-  r#type: Syntax,
+  data: Syntax,
   position: Position,
 }
 
@@ -20,9 +26,8 @@ impl fmt::Display for Element {
     write!(
           f,
           // "Element {{ \n value: '{}'\n type: {:?}\n position: {:?} \n}}",
-          "Element {{  value: '{}' | type: {:?} | position: {:?} }}",
-          self.value,
-          self.r#type,
+          "Element {{ data: {:?} | position: {:?} }}",
+          self.data,
           self.position
       )
   }
@@ -32,8 +37,15 @@ impl fmt::Display for Element {
 pub enum Syntax {
   Punctuator(Punctuator),
   Keyword(Keyword),
-  Expression(Expr),
   Undefined,
+  BooleanLiteral(bool),
+  EOF,
+  Identifier(String),
+  NullLiteral,
+  NumericLiteral(f64),
+  StringLiteral(String),
+  RegularExpressionLiteral(String, String),
+  Comment(String),
 }
 
 #[derive(Debug)]
@@ -41,6 +53,8 @@ pub struct Analyzer<'c> {
   // pub storage: Vec<String>,
   pub lexer: Vec<Element>,
   pub buffer: Peekable<std::str::Chars<'c>>,
+  line: u8,
+  column: u8,
 }
 
 impl<'c> Analyzer<'c> {
@@ -48,30 +62,89 @@ impl<'c> Analyzer<'c> {
     Analyzer {
       buffer: storage.chars().peekable(),
       lexer: Vec::new(),
+      line: 0,
+      column: 0,
     }
   }
 
-  pub fn analyze(&self, elem: &str) -> Syntax {
-    match elem {
-      ";" => Syntax::Punctuator(Punctuator::Semicolon),
-      "{" => Syntax::Punctuator(Punctuator::OpenBlock),
-      "}" => Syntax::Punctuator(Punctuator::CloseBlock),
-      "(" => Syntax::Punctuator(Punctuator::OpenParen),
-      ")" => Syntax::Punctuator(Punctuator::CloseParen),
-      "[" => Syntax::Punctuator(Punctuator::OpenBracket),
-      "]" => Syntax::Punctuator(Punctuator::CloseBracket),
-      "..." => Syntax::Punctuator(Punctuator::Spread),
-      "." => Syntax::Punctuator(Punctuator::Dot),
-      "," => Syntax::Punctuator(Punctuator::Comma),
-      "=" => Syntax::Punctuator(Punctuator::Assign),
-      "+" => Syntax::Punctuator(Punctuator::Add),
-      "-" => Syntax::Punctuator(Punctuator::Sub),
-      "const" => Syntax::Keyword(Keyword::Const),
-      "let" => Syntax::Keyword(Keyword::Let),
-      "import" => Syntax::Keyword(Keyword::Import),
-      "export" => Syntax::Keyword(Keyword::Export),
-      "from" => Syntax::Keyword(Keyword::From),
-      _ => Syntax::Undefined,
+  fn next(&mut self) -> char {
+    match self.buffer.next() {
+      Some(el) => el,
+      None => panic!("Buffer end"),
+    }
+  }
+
+  fn preview_next(&mut self) -> Option<char> {
+    self.buffer.peek().copied()
+  }
+
+  fn next_is(&mut self, el: char) -> bool {
+    let result = self.preview_next() == Some(el);
+    if result {
+      self.buffer.next();
+    }
+    result
+  }
+
+  fn push_token(&mut self, data: Syntax) {
+    self.lexer.push(Element {
+      data,
+      position: Position::new(self.line, self.column),
+    })
+  }
+
+  pub fn analyze(&mut self) {
+    'analyze: loop {
+      if self.preview_next().is_none() {
+        break 'analyze;
+      }
+      let el = self.next();
+      match el {
+        _ if el.is_alphabetic() => {
+          let mut buf = el.to_string();
+          while let Some(el) = self.preview_next() {
+            if el.is_alphabetic() {
+              buf.push(self.next())
+            } else {
+              break;
+            }
+          }
+          match buf.as_ref() {
+            "true" => self.push_token(Syntax::BooleanLiteral(true)),
+            "false" => self.push_token(Syntax::BooleanLiteral(false)),
+            "null" => self.push_token(Syntax::NullLiteral),
+            "undefined" => self.push_token(Syntax::Undefined),
+            slice => {
+              if let Ok(keyword) = FromStr::from_str(slice) {
+                self.push_token(Syntax::Keyword(keyword))
+              } else {
+                self.push_token(Syntax::Identifier(buf))
+              }
+            }
+          }
+        }
+        ';' => self.push_token(Syntax::Punctuator(Punctuator::Semicolon)),
+        '{' => self.push_token(Syntax::Punctuator(Punctuator::OpenBlock)),
+        '}' => self.push_token(Syntax::Punctuator(Punctuator::CloseBlock)),
+        '(' => self.push_token(Syntax::Punctuator(Punctuator::OpenParen)),
+        ')' => self.push_token(Syntax::Punctuator(Punctuator::CloseParen)),
+        '[' => self.push_token(Syntax::Punctuator(Punctuator::OpenBracket)),
+        ']' => self.push_token(Syntax::Punctuator(Punctuator::CloseBracket)),
+        _ if el == '.' => {
+          if self.next_is('.') {
+            if self.next_is('.') {
+              self.push_token(Syntax::Punctuator(Punctuator::Spread))
+            }
+            panic!("Syntax error!")
+          }
+          self.push_token(Syntax::Punctuator(Punctuator::Dot))
+        }
+        ',' => self.push_token(Syntax::Punctuator(Punctuator::Comma)),
+        '=' => self.push_token(Syntax::Punctuator(Punctuator::Assign)),
+        '+' => self.push_token(Syntax::Punctuator(Punctuator::Add)),
+        '-' => self.push_token(Syntax::Punctuator(Punctuator::Sub)),
+        _ => self.push_token(Syntax::Undefined),
+      }
     }
   }
 }

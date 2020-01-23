@@ -18,7 +18,13 @@ fn multi_concurrency() {
             .expect("File not found");
     });
     read_handler.join().unwrap();
-    reader.lock().unwrap().return_chars();
+    let result = reader.lock().unwrap().return_chars();
+    let mut analyzer = Analyzer::new(&result);
+    analyzer.analyze();
+    println!("{:?}", analyzer.buffer);
+    for i in analyzer.lexer {
+        println!("{:?}", i);
+    }
 }
 
 // fn single_concurrency() {
