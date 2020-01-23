@@ -1,5 +1,6 @@
 use crate::types::{expr::Expr, keyword::Keyword, punctuator::Punctuator};
 use std::fmt;
+use std::iter::Peekable;
 
 #[derive(Debug)]
 pub struct Position {
@@ -36,20 +37,16 @@ pub enum Syntax {
 }
 
 #[derive(Debug)]
-pub struct Analyzer {
-  pub storage: Vec<String>,
+pub struct Analyzer<'c> {
+  // pub storage: Vec<String>,
   pub lexer: Vec<Element>,
+  pub buffer: Peekable<std::str::Chars<'c>>,
 }
 
-impl Analyzer {
-  pub fn new(storage: Vec<String>) -> Self {
-    // storage
-    //   .iter_mut()
-    //   .split("\n")
-    //   .map(|x| !x.contains("import "))
-    //   .collect::<Vec<String>>();
+impl<'c> Analyzer<'c> {
+  pub fn new(storage: &'c String) -> Analyzer<'c> {
     Analyzer {
-      storage: storage,
+      buffer: storage.chars().peekable(),
       lexer: Vec::new(),
     }
   }
