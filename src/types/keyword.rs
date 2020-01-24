@@ -2,6 +2,7 @@ use std::{
   error,
   fmt::{Display, Error, Formatter},
   str::FromStr,
+  string::ToString,
 };
 
 #[derive(Debug)]
@@ -158,3 +159,11 @@ impl Display for Keyword {
     )
   }
 }
+
+// impl Clone for Keyword {
+//   fn clone(&self) -> Keyword {
+//     match self {
+//       a => a.clone(),
+//     }
+//   }
+// }

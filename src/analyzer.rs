@@ -5,12 +5,12 @@ use std::str::FromStr;
 
 #[derive(Debug)]
 pub struct Position {
-  line: u8,
-  column: u8,
+  line: u64,
+  column: u64,
 }
 
 impl Position {
-  fn new(x: u8, y: u8) -> Self {
+  fn new(x: u64, y: u64) -> Self {
     Position { line: x, column: y }
   }
 }
@@ -53,8 +53,8 @@ pub struct Analyzer<'c> {
   // pub storage: Vec<String>,
   pub lexer: Vec<Element>,
   pub buffer: Peekable<std::str::Chars<'c>>,
-  line: u8,
-  column: u8,
+  line: u64,
+  column: u64,
 }
 
 impl<'c> Analyzer<'c> {
@@ -86,11 +86,12 @@ impl<'c> Analyzer<'c> {
     result
   }
 
-  fn push_token(&mut self, data: Syntax) {
+  fn push_token(&mut self, data: Syntax, incr: u64) {
     self.lexer.push(Element {
       data,
       position: Position::new(self.line, self.column),
-    })
+    });
+    self.column += incr;
   }
 
   pub fn analyze(&mut self) {
@@ -109,7 +110,10 @@ impl<'c> Analyzer<'c> {
               break;
             }
           }
-          self.push_token(Syntax::NumericLiteral(f64::from_str(buf.as_ref()).unwrap()));
+          self.push_token(
+            Syntax::NumericLiteral(f64::from_str(buf.as_ref()).unwrap()),
+            buf.len() as u64,
+          );
         }
         _ if el.is_alphabetic() => {
           let mut buf = el.to_string();
@@ -121,40 +125,44 @@ impl<'c> Analyzer<'c> {
             }
           }
           match buf.as_ref() {
-            "true" => self.push_token(Syntax::BooleanLiteral(true)),
-            "false" => self.push_token(Syntax::BooleanLiteral(false)),
-            "null" => self.push_token(Syntax::NullLiteral),
-            "undefined" => self.push_token(Syntax::Undefined),
+            "true" => self.push_token(Syntax::BooleanLiteral(true), 4),
+            "false" => self.push_token(Syntax::BooleanLiteral(false), 5),
+            "null" => self.push_token(Syntax::NullLiteral, 4),
+            "undefined" => self.push_token(Syntax::Undefined, 9),
             slice => {
               if let Ok(keyword) = FromStr::from_str(slice) {
-                self.push_token(Syntax::Keyword(keyword))
+                // TODO
+                self.push_token(Syntax::Keyword(keyword), 0)
               } else {
-                self.push_token(Syntax::Identifier(buf))
+                self.push_token(Syntax::Identifier(buf.clone()), buf.len() as u64)
               }
             }
           }
         }
-        ';' => self.push_token(Syntax::Punctuator(Punctuator::Semicolon)),
-        '{' => self.push_token(Syntax::Punctuator(Punctuator::OpenBlock)),
-        '}' => self.push_token(Syntax::Punctuator(Punctuator::CloseBlock)),
-        '(' => self.push_token(Syntax::Punctuator(Punctuator::OpenParen)),
-        ')' => self.push_token(Syntax::Punctuator(Punctuator::CloseParen)),
-        '[' => self.push_token(Syntax::Punctuator(Punctuator::OpenBracket)),
-        ']' => self.push_token(Syntax::Punctuator(Punctuator::CloseBracket)),
+        ';' => self.push_token(Syntax::Punctuator(Punctuator::Semicolon), 1),
+        '{' => self.push_token(Syntax::Punctuator(Punctuator::OpenBlock), 1),
+        '}' => self.push_token(Syntax::Punctuator(Punctuator::CloseBlock), 1),
+        '(' => self.push_token(Syntax::Punctuator(Punctuator::OpenParen), 1),
+        ')' => self.push_token(Syntax::Punctuator(Punctuator::CloseParen), 1),
+        '[' => self.push_token(Syntax::Punctuator(Punctuator::OpenBracket), 1),
+        ']' => self.push_token(Syntax::Punctuator(Punctuator::CloseBracket), 1),
         _ if el == '.' => {
           if self.next_is('.') {
             if self.next_is('.') {
-              self.push_token(Syntax::Punctuator(Punctuator::Spread))
+              self.push_token(Syntax::Punctuator(Punctuator::Spread), 3)
             }
             panic!("Syntax error!")
           }
-          self.push_token(Syntax::Punctuator(Punctuator::Dot))
+          self.push_token(Syntax::Punctuator(Punctuator::Dot), 1)
         }
-        ',' => self.push_token(Syntax::Punctuator(Punctuator::Comma)),
-        '=' => self.push_token(Syntax::Punctuator(Punctuator::Assign)),
-        '+' => self.push_token(Syntax::Punctuator(Punctuator::Add)),
-        '-' => self.push_token(Syntax::Punctuator(Punctuator::Sub)),
-        ' ' => (),
+        ',' => self.push_token(Syntax::Punctuator(Punctuator::Comma), 1),
+        '=' => self.push_token(Syntax::Punctuator(Punctuator::Assign), 1),
+        '+' => self.push_token(Syntax::Punctuator(Punctuator::Add), 1),
+        '-' => self.push_token(Syntax::Punctuator(Punctuator::Sub), 1),
+        ' ' => {
+          self.column += 1;
+          ()
+        }
         '\'' => {
           let mut buf = String::new();
           while let Some(el) = self.preview_next() {
@@ -165,10 +173,13 @@ impl<'c> Analyzer<'c> {
               buf.push(self.next())
             }
           }
-          self.push_token(Syntax::StringLiteral(buf))
+          self.push_token(Syntax::StringLiteral(buf.clone()), buf.len() as u64)
         }
-        '\n' => self.line += 1,
-        _ => self.push_token(Syntax::Undefined),
+        '\n' => {
+          self.line += 1;
+          self.column = 1;
+        }
+        _ => self.push_token(Syntax::Undefined, 0),
       }
     }
   }
