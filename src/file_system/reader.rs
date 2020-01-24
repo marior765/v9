@@ -33,7 +33,6 @@ impl Reader {
     let mut reader = BufReader::new(file);
     let mut buf = String::new();
     println!("File size: {:?}", reader.read_to_string(&mut buf));
-    self.buffer.push(buf.clone());
     for line in buf.lines() {
       if line.contains("import ") {
         let splitted: Vec<&str> = line.split("from ").collect();
@@ -43,6 +42,7 @@ impl Reader {
         self.deep_read(path.as_ref()).expect("File not found");
       }
     }
+    self.buffer.push(buf);
     Ok(())
   }
 

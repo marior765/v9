@@ -62,8 +62,8 @@ impl<'c> Analyzer<'c> {
     Analyzer {
       buffer: storage.chars().peekable(),
       lexer: Vec::new(),
-      line: 0,
-      column: 0,
+      line: 1,
+      column: 1,
     }
   }
 
@@ -100,6 +100,17 @@ impl<'c> Analyzer<'c> {
       }
       let el = self.next();
       match el {
+        _ if el.is_numeric() => {
+          let mut buf = el.to_string();
+          while let Some(el) = self.preview_next() {
+            if el.is_numeric() {
+              buf.push(self.next())
+            } else {
+              break;
+            }
+          }
+          self.push_token(Syntax::NumericLiteral(f64::from_str(buf.as_ref()).unwrap()));
+        }
         _ if el.is_alphabetic() => {
           let mut buf = el.to_string();
           while let Some(el) = self.preview_next() {
@@ -143,6 +154,20 @@ impl<'c> Analyzer<'c> {
         '=' => self.push_token(Syntax::Punctuator(Punctuator::Assign)),
         '+' => self.push_token(Syntax::Punctuator(Punctuator::Add)),
         '-' => self.push_token(Syntax::Punctuator(Punctuator::Sub)),
+        ' ' => (),
+        '\'' => {
+          let mut buf = String::new();
+          while let Some(el) = self.preview_next() {
+            if el == '\'' {
+              self.next();
+              break;
+            } else {
+              buf.push(self.next())
+            }
+          }
+          self.push_token(Syntax::StringLiteral(buf))
+        }
+        '\n' => self.line += 1,
         _ => self.push_token(Syntax::Undefined),
       }
     }
